@@ -141,8 +141,8 @@ void destroyGraph(Graph *graph) {
 }
 
 void addEdge(Graph *graph, int u, int v, int weight) {
-    push(&(graph->outGoingEdges[u - 1]), v - 1);
-    push(&(graph->outGoingEdges[v - 1]), u - 1);
+    push(&(graph->outGoingEdges[u]), v);
+    push(&(graph->outGoingEdges[v]), u);
 
     graph->weights[u][v] = weight;
     graph->weights[v][u] = weight;
