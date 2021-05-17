@@ -78,47 +78,27 @@ int isEmpty(LinkedList list) {
         return 0;
 }
 
-
-
 /* ------------ GRAPH ------------ */
     /* Structure */
 
 typedef struct graph {
     /* Graph representation with adjency list */
 
-    int source, target;
-
     int vertices;
     LinkedList *outGoingEdges;
-
-    int **weights;
 } Graph;
 
     /* Functions */
 
 void initGraph(Graph *graph, int vertices) {
     /* Initialization of the graph properties */
-    int i, j;
+    int i;
 
     graph->vertices = vertices;
 
-    graph->source = vertices;
-    graph->target = vertices + 1;
-
     graph->outGoingEdges = (LinkedList *) malloc(sizeof(LinkedList) * vertices);
-    graph->weights = (int **) malloc(sizeof(int *) * (vertices + 2));
 
-    for (i = 0; i < vertices + 2; i++) {
-        graph->weights[i] = (int *) malloc(sizeof(int) * (vertices + 2));
-    }
-
-    for (i = 0; i < vertices + 2; i++) {
-        for (j = 0; j < vertices + 2; j++) {
-            graph->weights[i][j] = 0;
-        }
-    }
-
-    for (i = 0; i < vertices + 2; i++) {
+    for (i = 0; i < vertices; i++) {
         initList(&(graph->outGoingEdges[i]));
     }
 }
@@ -127,26 +107,11 @@ void destroyGraph(Graph *graph) {
     /* Frees the memory associated with the graph */
     int i;
     
-    for (i = 0; i < graph->vertices + 2; i++){
+    for (i = 0; i < graph->vertices; i++){
         destroyList(&(graph->outGoingEdges[i]));
-    }
+    }    
 
-    for (i = 0; i < graph->vertices + 2; i++) {
-        free(graph->weights[i]);
-    } 
-
-    free(graph->weights);
     free(graph->outGoingEdges);
-    free(graph);
-}
-
-void addEdge(Graph *graph, int u, int v, int weight) {
-    push(&(graph->outGoingEdges[u - 1]), v - 1);
-    push(&(graph->outGoingEdges[v - 1]), u - 1);
-
-    graph->weights[u][v] = weight;
-    graph->weights[v][u] = weight;
-
 }
 
 void processInput(Graph *graph) {
@@ -155,19 +120,15 @@ void processInput(Graph *graph) {
     scanf("%d %d", &vertices, &edges);
 
     initGraph(graph, vertices);
+
     for (i = 0; i < vertices; i++) {
         int x, y;
         scanf("%d %d", &x, &y);
-
-        addEdge(graph, graph->source, i, x);
-        addEdge(graph, graph->target, i, y);
     }
 
     for (i = 0; i < edges; i++) {
         int u, v, w;
         scanf("%d %d %d", &u, &v, &w);
-
-        addEdge(graph, u - 1, v - 1, w);
     }
 
 }
@@ -178,16 +139,6 @@ int main() {
     Graph graph;
 
     processInput(&graph);
-
-    printf("%d\n", graph.outGoingEdges[0].head);
-
-    printf("Pesos : \n");
-    for (i = 0; i < graph.vertices + 2; i++) {
-        for (j = 0; j < graph.vertices + 2; j++) {
-            printf("%d ", graph.weights[i][j]);
-        }
-        printf("\n");
-    }
 
     destroyGraph(&graph);
     return 0;
