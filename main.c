@@ -1,6 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#define TRUE 1
+#define WHITE 0
+#define GRAY 1
+#define BLACK 2
+
 /* ------------ LINKEDLIST ------------ */
     /* Structures */
 
@@ -40,6 +45,34 @@ int pop(LinkedList *list) {
     list->head = list->head->next;
 
     free(removedElement);
+    return value;
+}
+
+int popEnd(LinkedList *list) {
+    /* Removes the last element from the list */
+
+    int value;
+
+    if (list->head == NULL)
+        return -1;
+
+    if (list->head->next == NULL) {
+        value = list->head->value;
+        free(list->head);
+        list->head = NULL;
+
+        return value;
+    }
+
+    node *node = list->head;
+    while (node->next->next != NULL) {
+        node = node->next;
+    }
+
+    value = node->next->value;
+    free(node->next);
+    node->next = NULL;
+
     return value;
 }
 
@@ -99,7 +132,9 @@ typedef struct graph {
     int source, target;
 
     LinkedList *outGoingEdges;
+    
     int **weights;
+    int **graphF;
 
 } Graph;
 
@@ -118,9 +153,14 @@ void initGraph(Graph *graph, int vertices) {
 
     graph->outGoingEdges = (LinkedList *) malloc(sizeof(LinkedList) * vertices);
     graph->weights = (int **) malloc(sizeof(int *) * vertices);
+    graph->graphF = (int **) malloc(sizeof(int *) * vertices);
 
     for (i = 0; i < vertices; i++) {
         graph->weights[i] = (int *) malloc(sizeof(int) * vertices);
+    }
+
+    for (i = 0; i < vertices; i++) {
+        graph->graphF[i] = (int *) malloc(sizeof(int) * vertices);
     }
 
     for (i = 0; i < vertices; i++) {
@@ -142,6 +182,10 @@ void addEdge(Graph *graph, int u, int v, int weight) {
     graph->weights[v][u] = weight;
 }
 
+LinkedList getAdjacencies(Graph *graph, int vertice) {
+    return graph->outGoingEdges[vertice];
+}
+
 void destroyGraph(Graph *graph) {
     /* Frees the memory associated with the graph */
     int i;
@@ -155,8 +199,132 @@ void destroyGraph(Graph *graph) {
         free(toFree);
     } 
 
+    for (i = 0; i < graph->vertices; i++) {
+        int *toFree = graph->graphF[i];
+        free(toFree);
+    }
+
     free(graph->weights);
+    free(graph->graphF);
     free(graph->outGoingEdges);
+}
+
+void getShortestPath(Graph *graph, int *path, int *pathLength, char *color, int *parent) {
+    
+    int i, head;
+    *pathLength = 0;
+
+    LinkedList stack;
+    initList(&stack);
+
+    for (i = 0; i < graph->vertices; i++) {
+        color[i] = WHITE;
+        parent[i] = -1;
+    }
+
+    color[graph->source] = GRAY;
+    push(&stack, graph->source);
+
+    LinkedList adjacencies;
+    node* adjacency;
+    while (isEmpty(stack) != TRUE) {
+        head = popEnd(&stack);
+
+        adjacencies = getAdjacencies(graph, head);
+        for(adjacency = adjacencies.head; adjacency != NULL; adjacency = adjacency->next) {
+            i = adjacency->value;
+            if((color[i] == WHITE) && (graph->graphF[head][i] > 0)){
+                if (i == graph->target){
+                    parent[i] = head;
+
+                    while (parent[i] != -1) {
+                        path[*pathLength] = i;
+                        (*pathLength)++;
+
+                        i = parent[i];
+                    }
+
+                    path[*pathLength] = i;
+                    (*pathLength)++;
+
+                    destroyList(&stack);
+                    return;
+                }
+
+                push(&stack, i);
+                parent[i] = head;
+                color[i] = GRAY;
+            }
+
+        }
+    }   
+}
+
+int computeMinimumCost(Graph *graph) {
+
+    int i, j;
+    int minimumIncrease, minimumCost = 0;
+
+    
+    /* Init graphF */ 
+    for (i = 0; i < graph->vertices; i++) {
+        for (j = 0; j < graph->vertices; j++) {
+            graph->graphF[i][j] = graph->weights[i][j];
+        }
+    }
+
+    int *path = (int *) malloc(sizeof(int) * graph->vertices);
+    int pathLength;
+
+    char *color = (char*) malloc(sizeof(char) * graph->vertices);
+    int *parent = (int*) malloc(sizeof(int) * graph->vertices);
+
+    while (TRUE) {
+        getShortestPath(graph, path, &pathLength, color, parent);
+
+        if (pathLength == 0) {
+            /* Free memory */
+            free(color);
+            free(parent);
+            free(path);
+
+            return minimumCost;
+        }
+
+
+        minimumIncrease = graph->graphF[path[1]][path[0]];
+        for (i = 0; i < pathLength - 1; i++) {
+            int u = path[i + 1], v = path[i];
+             if (graph->graphF[u][v] < minimumIncrease) {
+                 minimumIncrease = graph->graphF[u][v];
+             }
+        }
+
+        /*
+        for (i = 0; i < pathLength; i++) {
+            printf("%d ", path[i]);
+        }
+        printf(" : %d\n", minimumIncrease);
+
+
+        printf("\nPesos : \n");
+        for (i = 0; i < graph->vertices; i++) {
+            for (j = 0; j < graph->vertices; j++) {
+                printf("%d ", graph->graphF[i][j]);
+            }
+            printf("\n");
+        }
+        */
+
+        for (i = 0; i < pathLength - 1; i++) {
+            int u = path[i], v = path[i + 1];
+
+            graph->graphF[v][u] -= minimumIncrease;
+            graph->graphF[u][v] += minimumIncrease;
+        }
+
+        minimumCost += minimumIncrease;
+    }
 }
 
 void processInput(Graph *graph) {
@@ -185,11 +353,12 @@ void processInput(Graph *graph) {
 
 int main() {
 
-    int i, j;
+    int minimumCost;
     Graph graph;
 
     processInput(&graph);
 
+    /*
     printf("Arcos : \n");
     for( i = 0; i < graph.vertices; i++) {
         print(&graph.outGoingEdges[i]);
@@ -202,7 +371,11 @@ int main() {
         }
         printf("\n");
     }
+    */
 
+    minimumCost = computeMinimumCost(&graph);
+    printf("%d\n", minimumCost);
+    
     destroyGraph(&graph);
     return 0;
 }
