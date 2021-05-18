@@ -48,34 +48,6 @@ int pop(LinkedList *list) {
     return value;
 }
 
-int popEnd(LinkedList *list) {
-    /* Removes the last element from the list */
-
-    int value;
-
-    if (list->head == NULL)
-        return -1;
-
-    if (list->head->next == NULL) {
-        value = list->head->value;
-        free(list->head);
-        list->head = NULL;
-
-        return value;
-    }
-
-    node *node = list->head;
-    while (node->next->next != NULL) {
-        node = node->next;
-    }
-
-    value = node->next->value;
-    free(node->next);
-    node->next = NULL;
-
-    return value;
-}
-
 void push(LinkedList *list, int value) {
     /* Adds a new element to the begining of the list */
     node *newNode;
@@ -228,7 +200,7 @@ void getShortestPath(Graph *graph, int *path, int *pathLength, char *color, int 
     LinkedList adjacencies;
     node* adjacency;
     while (isEmpty(stack) != TRUE) {
-        head = popEnd(&stack);
+        head = pop(&stack);
 
         adjacencies = getAdjacencies(graph, head);
         for(adjacency = adjacencies.head; adjacency != NULL; adjacency = adjacency->next) {
@@ -237,11 +209,14 @@ void getShortestPath(Graph *graph, int *path, int *pathLength, char *color, int 
                 if (i == graph->target){
                     parent[i] = head;
 
+                    
                     while (parent[i] != -1) {
                         path[*pathLength] = i;
                         (*pathLength)++;
 
                         i = parent[i];
+
+
                     }
 
                     path[*pathLength] = i;
@@ -353,9 +328,7 @@ void processInput(Graph *graph) {
 
 int main() {
 
-    int minimumCost;
     Graph graph;
-
     processInput(&graph);
 
     /*
@@ -373,7 +346,7 @@ int main() {
     }
     */
 
-    minimumCost = computeMinimumCost(&graph);
+    int minimumCost = computeMinimumCost(&graph);
     printf("%d\n", minimumCost);
     
     destroyGraph(&graph);
