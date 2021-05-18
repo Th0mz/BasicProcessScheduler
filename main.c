@@ -6,6 +6,8 @@
 #define GRAY 1
 #define BLACK 2
 
+#define INFINITY 2147483646
+
 /* ------------ LINKEDLIST ------------ */
     /* Structures */
 
@@ -181,13 +183,13 @@ void destroyGraph(Graph *graph) {
     free(graph->outGoingEdges);
 }
 
-void getShortestPath(Graph *graph, int *path, int *pathLength, char *color, int *parent) {
+int getShortestPath(Graph *graph, int *path, int *pathLength, char *color, int *parent) {
     
     int i, head;
     *pathLength = 0;
 
-    LinkedList stack;
-    initList(&stack);
+    int *stack = (int *) malloc(sizeof(int) * graph->vertices);
+    int pointer = 0;
 
     for (i = 0; i < graph->vertices; i++) {
         color[i] = WHITE;
@@ -195,53 +197,56 @@ void getShortestPath(Graph *graph, int *path, int *pathLength, char *color, int 
     }
 
     color[graph->source] = GRAY;
-    push(&stack, graph->source);
+    stack[pointer] = graph->source;
 
     LinkedList adjacencies;
     node* adjacency;
-    while (isEmpty(stack) != TRUE) {
-        head = pop(&stack);
+    while (pointer >= 0) {
+        head = stack[pointer];
+        pointer--;
 
         adjacencies = getAdjacencies(graph, head);
         for(adjacency = adjacencies.head; adjacency != NULL; adjacency = adjacency->next) {
             i = adjacency->value;
             if((color[i] == WHITE) && (graph->graphF[head][i] > 0)){
-                if (i == graph->target){
+                if (i == graph->target) {
                     parent[i] = head;
 
-                    
+                    int minimumIncrease = INFINITY;
                     while (parent[i] != -1) {
                         path[*pathLength] = i;
                         (*pathLength)++;
 
+                        if (graph->graphF[parent[i]][i] < minimumIncrease) {
+                            minimumIncrease = graph->graphF[parent[i]][i]; 
+                        }
+
                         i = parent[i];
-
-
                     }
 
                     path[*pathLength] = i;
                     (*pathLength)++;
 
-                    destroyList(&stack);
-                    return;
+                    free(stack);
+                    return minimumIncrease;
                 }
 
-                push(&stack, i);
+                pointer++;
+                stack[pointer] = i;
                 parent[i] = head;
                 color[i] = GRAY;
             }
-
         }
-    }   
+    }
+    return 0;   
 }
 
 int computeMinimumCost(Graph *graph) {
 
     int i, j;
     int minimumIncrease, minimumCost = 0;
-
-    
     /* Init graphF */ 
+
     for (i = 0; i < graph->vertices; i++) {
         for (j = 0; j < graph->vertices; j++) {
             graph->graphF[i][j] = graph->weights[i][j];
@@ -255,7 +260,8 @@ int computeMinimumCost(Graph *graph) {
     int *parent = (int*) malloc(sizeof(int) * graph->vertices);
 
     while (TRUE) {
-        getShortestPath(graph, path, &pathLength, color, parent);
+
+        minimumIncrease = getShortestPath(graph, path, &pathLength, color, parent);
 
         if (pathLength == 0) {
             /* Free memory */
@@ -263,19 +269,12 @@ int computeMinimumCost(Graph *graph) {
             free(parent);
             free(path);
 
+
             return minimumCost;
         }
 
-
-        minimumIncrease = graph->graphF[path[1]][path[0]];
-        for (i = 0; i < pathLength - 1; i++) {
-            int u = path[i + 1], v = path[i];
-             if (graph->graphF[u][v] < minimumIncrease) {
-                 minimumIncrease = graph->graphF[u][v];
-             }
-        }
-
         /*
+
         for (i = 0; i < pathLength; i++) {
             printf("%d ", path[i]);
         }
